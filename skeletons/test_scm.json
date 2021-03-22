@@ -1,0 +1,55 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "s1"
+    },
+    {
+      "id": "s2"
+    },
+    {
+      "id": "s3"
+    },
+    {
+      "id": "a"
+    },
+    {
+      "id": "s4"
+    },
+    {
+      "id": "r"
+    }
+  ],
+  "links": [
+    {
+      "source": "s1",
+      "target": "s2"
+    },
+    {
+      "source": "s1",
+      "target": "s3"
+    },
+    {
+      "source": "s1",
+      "target": "a"
+    },
+    {
+      "source": "s3",
+      "target": "s4"
+    },
+    {
+      "source": "s3",
+      "target": "a"
+    },
+    {
+      "source": "a",
+      "target": "r"
+    },
+    {
+      "source": "s4",
+      "target": "r"
+    }
+  ]
+}

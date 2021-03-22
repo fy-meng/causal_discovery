@@ -1,0 +1,52 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "age"
+    },
+    {
+      "id": "weight"
+    },
+    {
+      "id": "severity"
+    },
+    {
+      "id": "outcome"
+    },
+    {
+      "id": "treatment"
+    }
+  ],
+  "links": [
+    {
+      "source": "age",
+      "target": "weight"
+    },
+    {
+      "source": "age",
+      "target": "severity"
+    },
+    {
+      "source": "age",
+      "target": "outcome"
+    },
+    {
+      "source": "weight",
+      "target": "severity"
+    },
+    {
+      "source": "severity",
+      "target": "treatment"
+    },
+    {
+      "source": "severity",
+      "target": "outcome"
+    },
+    {
+      "source": "treatment",
+      "target": "outcome"
+    }
+  ]
+}
