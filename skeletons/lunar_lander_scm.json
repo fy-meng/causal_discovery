@@ -1,0 +1,253 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "x_pos_prev"
+    },
+    {
+      "id": "y_pos_prev"
+    },
+    {
+      "id": "x_vel_prev"
+    },
+    {
+      "id": "y_vel_prev"
+    },
+    {
+      "id": "angle_prev"
+    },
+    {
+      "id": "angle_vel_prev"
+    },
+    {
+      "id": "left_leg_prev"
+    },
+    {
+      "id": "right_leg_prev"
+    },
+    {
+      "id": "x_pos"
+    },
+    {
+      "id": "y_pos"
+    },
+    {
+      "id": "x_vel"
+    },
+    {
+      "id": "y_vel"
+    },
+    {
+      "id": "angle"
+    },
+    {
+      "id": "angle_vel"
+    },
+    {
+      "id": "left_leg"
+    },
+    {
+      "id": "right_leg"
+    },
+    {
+      "id": "a_prev"
+    },
+    {
+      "id": "a"
+    }
+  ],
+  "links": [
+    {
+      "source": "x_vel_prev",
+      "target": "x_vel"
+    },
+    {
+      "source": "y_vel_prev",
+      "target": "y_vel"
+    },
+    {
+      "source": "angle_vel_prev",
+      "target": "angle_vel"
+    },
+    {
+      "source": "x_pos_prev",
+      "target": "x_pos"
+    },
+    {
+      "source": "y_pos_prev",
+      "target": "y_pos"
+    },
+    {
+      "source": "angle_prev",
+      "target": "angle"
+    },
+
+    {
+      "source": "x_pos_prev",
+      "target": "left_leg_prev"
+    },
+    {
+      "source": "y_pos_prev",
+      "target": "left_leg_prev"
+    },
+    {
+      "source": "angle_prev",
+      "target": "left_leg_prev"
+    },
+    {
+      "source": "x_pos_prev",
+      "target": "right_leg_prev"
+    },
+    {
+      "source": "y_pos_prev",
+      "target": "right_leg_prev"
+    },
+    {
+      "source": "angle_prev",
+      "target": "right_leg_prev"
+    },
+
+    {
+      "source": "x_pos",
+      "target": "left_leg"
+    },
+    {
+      "source": "y_pos",
+      "target": "left_leg"
+    },
+    {
+      "source": "angle",
+      "target": "left_leg"
+    },
+    {
+      "source": "x_pos",
+      "target": "right_leg"
+    },
+    {
+      "source": "y_pos",
+      "target": "right_leg"
+    },
+    {
+      "source": "angle",
+      "target": "right_leg"
+    },
+
+    {
+      "source": "x_vel_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "y_vel_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "angle_vel_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "x_pos_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "y_pos_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "angle_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "left_leg_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "right_leg_prev",
+      "target": "a_prev"
+    },
+
+    {
+      "source": "x_vel",
+      "target": "a"
+    },
+    {
+      "source": "y_vel",
+      "target": "a"
+    },
+    {
+      "source": "angle_vel",
+      "target": "a"
+    },
+    {
+      "source": "x_pos",
+      "target": "a"
+    },
+    {
+      "source": "y_pos",
+      "target": "a"
+    },
+    {
+      "source": "angle",
+      "target": "a"
+    },
+    {
+      "source": "left_leg",
+      "target": "a"
+    },
+    {
+      "source": "right_leg",
+      "target": "a"
+    },
+
+    {
+      "source": "x_vel_prev",
+      "target": "x_vel"
+    },
+    {
+      "source": "y_vel_prev",
+      "target": "y_vel"
+    },
+    {
+      "source": "angle_vel_prev",
+      "target": "angle_vel"
+    },
+    {
+      "source": "x_pos_prev",
+      "target": "x_pos"
+    },
+    {
+      "source": "y_pos_prev",
+      "target": "y_pos"
+    },
+    {
+      "source": "angle_prev",
+      "target": "angle"
+    },
+
+    {
+      "source": "a_prev",
+      "target": "x_vel"
+    },
+    {
+      "source": "a_prev",
+      "target": "y_vel"
+    },
+    {
+      "source": "a_prev",
+      "target": "angle_vel"
+    },
+    {
+      "source": "a_prev",
+      "target": "x_pos"
+    },
+    {
+      "source": "a_prev",
+      "target": "y_pos"
+    },
+    {
+      "source": "a_prev",
+      "target": "angle"
+    }
+  ]
+}

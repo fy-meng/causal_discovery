@@ -1,0 +1,209 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "hand_1"
+    },
+    {
+      "id": "a_1"
+    },
+    {
+      "id": "hand_2"
+    },
+    {
+      "id": "ace_2"
+    },
+    {
+      "id": "a_2"
+    },
+    {
+      "id": "hand_3"
+    },
+    {
+      "id": "ace_3"
+    },
+    {
+      "id": "a_3"
+    },
+    {
+      "id": "hand_4"
+    },
+    {
+      "id": "ace_4"
+    },
+    {
+      "id": "dealer_1"
+    },
+    {
+      "id": "dealer_2"
+    },
+    {
+      "id": "dealer_3"
+    },
+    {
+      "id": "dealer_4"
+    },
+    {
+      "id": "ace_1"
+    },
+    {
+      "id": "hand_0"
+    },
+    {
+      "id": "a_0"
+    },
+    {
+      "id": "dealer_0"
+    },
+    {
+      "id": "ace_0"
+    },
+    {
+      "id": "a_4"
+    }
+  ],
+  "links": [
+    {
+      "source": "hand_1",
+      "target": "a_1"
+    },
+    {
+      "source": "hand_1",
+      "target": "hand_2"
+    },
+    {
+      "source": "a_1",
+      "target": "hand_2"
+    },
+    {
+      "source": "a_1",
+      "target": "ace_2"
+    },
+    {
+      "source": "hand_2",
+      "target": "a_2"
+    },
+    {
+      "source": "hand_2",
+      "target": "hand_3"
+    },
+    {
+      "source": "ace_2",
+      "target": "a_2"
+    },
+    {
+      "source": "ace_2",
+      "target": "ace_3"
+    },
+    {
+      "source": "a_2",
+      "target": "hand_3"
+    },
+    {
+      "source": "a_2",
+      "target": "ace_3"
+    },
+    {
+      "source": "hand_3",
+      "target": "a_3"
+    },
+    {
+      "source": "hand_3",
+      "target": "hand_4"
+    },
+    {
+      "source": "ace_3",
+      "target": "a_3"
+    },
+    {
+      "source": "ace_3",
+      "target": "ace_4"
+    },
+    {
+      "source": "a_3",
+      "target": "hand_4"
+    },
+    {
+      "source": "a_3",
+      "target": "ace_4"
+    },
+    {
+      "source": "hand_4",
+      "target": "a_4"
+    },
+    {
+      "source": "ace_4",
+      "target": "a_4"
+    },
+    {
+      "source": "dealer_1",
+      "target": "a_1"
+    },
+    {
+      "source": "dealer_1",
+      "target": "dealer_2"
+    },
+    {
+      "source": "dealer_2",
+      "target": "a_2"
+    },
+    {
+      "source": "dealer_2",
+      "target": "dealer_3"
+    },
+    {
+      "source": "dealer_3",
+      "target": "a_3"
+    },
+    {
+      "source": "dealer_3",
+      "target": "dealer_4"
+    },
+    {
+      "source": "dealer_4",
+      "target": "a_4"
+    },
+    {
+      "source": "ace_1",
+      "target": "a_1"
+    },
+    {
+      "source": "ace_1",
+      "target": "ace_2"
+    },
+    {
+      "source": "hand_0",
+      "target": "hand_1"
+    },
+    {
+      "source": "hand_0",
+      "target": "a_0"
+    },
+    {
+      "source": "a_0",
+      "target": "hand_1"
+    },
+    {
+      "source": "a_0",
+      "target": "ace_1"
+    },
+    {
+      "source": "dealer_0",
+      "target": "dealer_1"
+    },
+    {
+      "source": "dealer_0",
+      "target": "a_0"
+    },
+    {
+      "source": "ace_0",
+      "target": "ace_1"
+    },
+    {
+      "source": "ace_0",
+      "target": "a_0"
+    }
+  ]
+}

@@ -1,0 +1,80 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "hand_prev"
+    },
+    {
+      "id": "dealer_prev"
+    },
+    {
+      "id": "ace_prev"
+    },
+    {
+      "id": "a_prev"
+    },
+    {
+      "id": "hand"
+    },
+    {
+      "id": "dealer"
+    },
+    {
+      "id": "ace"
+    },
+    {
+      "id": "a"
+    }
+  ],
+  "links": [
+    {
+      "source": "hand_prev",
+      "target": "hand"
+    },
+    {
+      "source": "dealer_prev",
+      "target": "dealer"
+    },
+    {
+      "source": "ace_prev",
+      "target": "ace"
+    },
+
+    {
+      "source": "hand_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "dealer_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "ace_prev",
+      "target": "a_prev"
+    },
+
+    {
+      "source": "hand",
+      "target": "a"
+    },
+    {
+      "source": "dealer",
+      "target": "a"
+    },
+    {
+      "source": "ace",
+      "target": "a"
+    },
+
+    {
+      "source": "a_prev",
+      "target": "hand"
+    },
+    {
+      "source": "a_prev",
+      "target": "ace"
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "x"
+    },
+    {
+      "id": "v"
+    },
+    {
+      "id": "a"
+    },
+    {
+      "id": "x_prev"
+    },
+    {
+      "id": "v_prev"
+    },
+    {
+      "id": "a_prev"
+    }
+  ],
+  "links": [
+    {
+      "source": "v_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "x_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "v_prev",
+      "target": "v"
+    },
+    {
+      "source": "x_prev",
+      "target": "x"
+    },
+    {
+      "source": "a_prev",
+      "target": "v"
+    },
+    {
+      "source": "v_prev",
+      "target": "x"
+    },
+    {
+      "source": "x_prev",
+      "target": "v"
+    },
+    {
+      "source": "v",
+      "target": "a"
+    },
+    {
+      "source": "x",
+      "target": "a"
+    }
+  ]
+}
