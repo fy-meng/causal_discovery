@@ -103,6 +103,3 @@ class BangBangControl(Simulator):
 
     def seed(self, random_seed):
         np.random.seed(random_seed)
-
-
-

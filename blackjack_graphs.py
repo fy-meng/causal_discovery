@@ -34,7 +34,7 @@ bins = np.cumsum(bins)
 max_val = max([max(saliency_q[f]) for f in features])
 
 for i in range(length):
-    fig, ax = plt.subplots(dpi=300)
+    fig, ax = plt.subplots(dpi=300, figsize=(6.4, 3.6))
     ax: plt.Axes
 
     weights = np.zeros(len(bins) - 1)
@@ -45,7 +45,7 @@ for i in range(length):
     n, bins, patches = ax.hist(bins[:-1], bins=bins, weights=weights)
     ax.set_xticks(np.arange(3, 34, 5))
     ax.set_xticklabels(['' for _ in range(7)])
-    ax.set_ylim(0, 0.175)
+    ax.set_ylim(0, 0.155)
     # ax.set_yticks([0, 0.5, 1])
     plt.tight_layout()
 
@@ -55,14 +55,13 @@ for i in range(length):
         plt.setp(patches[3 * j + 2], 'fill', False)
         plt.setp(patches[3 * j + 2], 'hatch', '///')
 
-    p1 = mpatches.Patch(facecolor='000000', fill=True, label='Q-value based')
-    p2 = mpatches.Patch(facecolor='000000', fill=False, hatch=r'///', label='Action based')
-    ax.legend(handles=[p1, p2], loc=2, fontsize=14)
-    ax.set_ylabel('Q-value based importance', fontsize=14)
+    ax.set_ylabel('Q-value-based importance', fontsize=14)
+    ax.set_yticks([0, 0.05, 0.1, 0.15])
+    ax.set_xlabel(f'step {i}', fontsize=14)
 
     ax2: plt.Axes = ax.twinx()
-    ax2.set_ylabel('Action based importance', fontsize=14)
-    ax2.set_ylim(0, 0.175)
+    ax2.set_ylabel('Action-based importance', fontsize=14)
+    ax2.set_ylim(0, 0.155)
     ax2.set_yticks([0, 0.5 * max_val, max_val])
     ax2.set_yticklabels(['0.0', '0.5', '1.0'])
 

@@ -1,0 +1,109 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "t_prev"
+    },
+    {
+      "id": "rain_prev"
+    },
+    {
+      "id": "sunlight_prev"
+    },
+    {
+      "id": "water_prev"
+    },
+    {
+      "id": "a_prev"
+    },
+    {
+      "id": "t"
+    },
+    {
+      "id": "rain"
+    },
+    {
+      "id": "sunlight"
+    },
+    {
+      "id": "water"
+    },
+    {
+      "id": "a"
+    }
+  ],
+  "links": [
+    {
+      "source": "t_prev",
+      "target": "rain_prev"
+    },
+    {
+      "source": "t_prev",
+      "target": "sunlight_prev"
+    },
+    {
+      "source": "rain_prev",
+      "target": "water_prev"
+    },
+    {
+      "source": "rain_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "sunlight_prev",
+      "target": "a_prev"
+    },
+
+    {
+      "source": "t",
+      "target": "rain"
+    },
+    {
+      "source": "t",
+      "target": "sunlight"
+    },
+    {
+      "source": "rain",
+      "target": "water"
+    },
+    {
+      "source": "a_prev",
+      "target": "water"
+    },
+    {
+      "source": "water",
+      "target": "a"
+    },
+    {
+      "source": "sunlight",
+      "target": "a"
+    },
+
+    {
+      "source": "t_prev",
+      "target": "t"
+    },
+    {
+      "source": "rain_prev",
+      "target": "rain"
+    },
+    {
+      "source": "sunlight_prev",
+      "target": "sunlight"
+    },
+    {
+      "source": "water_prev",
+      "target": "water"
+    },
+    {
+      "source": "t",
+      "target": "a"
+    },
+    {
+      "source": "rain",
+      "target": "a"
+    }
+  ]
+}

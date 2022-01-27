@@ -1,0 +1,44 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "s1"
+    },
+    {
+      "id": "s2"
+    },
+    {
+      "id": "s3"
+    },
+    {
+      "id": "vp"
+    },
+    {
+      "id": "a"
+    }
+  ],
+  "links": [
+    {
+      "source": "s1",
+      "target": "s2"
+    },
+    {
+      "source": "vp",
+      "target": "s3"
+    },
+    {
+      "source": "s1",
+      "target": "a"
+    },
+    {
+      "source": "s2",
+      "target": "a"
+    },
+    {
+      "source": "s3",
+      "target": "a"
+    }
+  ]
+}

@@ -54,8 +54,8 @@ class FCLayer(nn.Module):
     def __init__(self, in_channels, out_channels, dropout=True):
         super(FCLayer, self).__init__()
         self.fc = nn.Linear(in_channels, out_channels)
-        self.activation = nn.ReLU(inplace=True)
-        # self.activation = nn.LeakyReLU(0.2, inplace=True)
+        # self.activation = nn.ReLU(inplace=True)
+        self.activation = nn.LeakyReLU(0.2, inplace=True)
         self.dropout = nn.Dropout(0.5) if dropout else None
 
     def forward(self, x):
@@ -90,7 +90,7 @@ class FCNet(nn.Module):
 
 
 class Net:
-    def __init__(self, in_channels, out_channels, layers, dropout=False, sigmoid=False, lr=1e-3):
+    def __init__(self, in_channels, out_channels, layers, dropout=False, sigmoid=False, lr=3e-5):
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.model = FCNet(in_channels, out_channels, layers, dropout=dropout, sigmoid=sigmoid)

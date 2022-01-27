@@ -17,6 +17,8 @@ from model.linear_generator import LinearNoiseGenerator
 from model.linear_regressor import LinearRegressor
 from sim.bang_bang import BangBangControl
 from sim.blackjack import Blackjack
+from sim.crop import ToyCrop
+from sim.crop2 import ToyCrop2
 from sim.lunar_lander.lunar_lander import LunarLander
 from sim.simulator import Simulator
 from utils import verify_output_path
@@ -51,10 +53,25 @@ class SCM(nx.DiGraph):
     def load_skeleton(path, num_latent=1, action_size=1, action_nodes=()):
         with open(path, 'r') as f:
             data = json.load(f)
+
+            # sanitization check
+            vertices = [d['id'] for d in data['nodes']]
+            edges = [(d['source'], d['target']) for d in data['links']]
+            for u, v in edges:
+                assert u in vertices, f"wrong skeleton node {u} in edge ({u}, {v})"
+                assert v in vertices, f"wrong skeleton node {v} in edge ({u}, {v})"
+
             g = json_graph.node_link_graph(data)
             scm = SCM(num_latent, action_size=action_size, action_nodes=action_nodes)
             scm.add_edges_from(g.edges)
         scm.create_indices()
+
+        # # plot graph
+        # import networkx as nx
+        # pos = nx.spring_layout(scm, scale=20, k=3 / np.sqrt(scm.order()))
+        # nx.draw(scm, pos=pos, with_labels=True)
+        # plt.show()
+
         return scm
 
     @staticmethod
@@ -201,12 +218,13 @@ class SCM(nx.DiGraph):
 
         return latent_dict
 
-    def compute_saliency(self, state, start_node, sink_node, latent_dict, target_value,
-                         bool_nodes=(), fixed_nodes=None, num_trials=2, perturb_amount=0.01, integer=False):
+    def compute_importance(self, state, start_node, sink_node, latent_dict, target_value,
+                           bool_nodes=(), fixed_nodes=None, perturb_amount=0.01, integer=False, saliency_map=False):
         saliency = 0.0
 
         model: LinearNoiseGenerator = self.nodes[start_node]['model']
-        for k in range(num_trials):
+        # two trials, one +delta and one -delta
+        for k in range(2):
             # reset the value of all nodes
             self.set_state(state)
 
@@ -218,26 +236,31 @@ class SCM(nx.DiGraph):
                 sign = 1 if k % 2 == 0 else -1
                 noise = sign * perturb_amount
                 if model.output_std is not None:
-                    self.nodes[start_node]['value'] += noise * model.output_std
+                    self.nodes[start_node]['value'] = np.array(self.nodes[start_node]['value']) \
+                                                      + noise * model.output_std
                 else:
-                    self.nodes[start_node]['value'] += noise
+                    self.nodes[start_node]['value'] = np.array(self.nodes[start_node]['value']) + noise
 
             # compute new values for all nodes
             if fixed_nodes is None:
                 fixed_nodes = (start_node,)
             else:
                 assert start_node in fixed_nodes
+            #     if saliency_map = True, run saliency map method instead
+            #     by fixing all but start_node and sink_node
+            if saliency_map:
+                fixed_nodes = set([node for node in self.nodes if node != sink_node])
             self.generate(latent_dict=latent_dict, use_model=True, fixed_nodes=fixed_nodes, integer=integer)
 
             # get new target value and compute difference
             new_target_value = self.nodes[sink_node]['value']
 
-            saliency += np.mean(np.abs(new_target_value - target_value)) / abs(noise) / num_trials
+            saliency += np.mean(np.e(new_target_value - target_value)) / abs(noise) / 2
 
         return saliency
 
-    def compute_all_saliency(self, state, sink_node,
-                             bool_nodes=(), num_trials=2, perturb_amount=0.01, integer=False):
+    def compute_all_importance(self, state, sink_node,
+                               bool_nodes=(), perturb_amount=0.01, integer=False, saliency_map=False):
         """
         Compute saliencies for all but SINK_NODE given the state.
         """
@@ -252,14 +275,14 @@ class SCM(nx.DiGraph):
 
         for node in self.nodes:
             if node != sink_node:
-                saliencies[node] = self.compute_saliency(state, node, sink_node, latent_dict, target_value,
-                                                         bool_nodes=bool_nodes, num_trials=num_trials,
-                                                         perturb_amount=perturb_amount, integer=integer)
+                saliencies[node] = self.compute_importance(state, node, sink_node, latent_dict, target_value,
+                                                           bool_nodes=bool_nodes, perturb_amount=perturb_amount,
+                                                           integer=integer, saliency_map=saliency_map)
 
         return saliencies
 
-    def compute_path_saliency(self, state, sink_node, start_nodes=None,
-                              bool_nodes=(), num_trials=2, perturb_amount=0.01, integer=False):
+    def compute_path_importance(self, state, sink_node, start_nodes=None,
+                                bool_nodes=(), perturb_amount=0.01, integer=False):
         saliencies = dict()
 
         latent_dict = self.get_latent_dict(state, sink_node)
@@ -279,10 +302,10 @@ class SCM(nx.DiGraph):
                     assert len(p) >= 2
                     fixed_nodes = [node for node in self.nodes if node not in p[1:]]
                     print(p, fixed_nodes)
-                    saliencies[p] = self.compute_saliency(state, node, sink_node, latent_dict, target_value,
-                                                          bool_nodes=bool_nodes, fixed_nodes=fixed_nodes,
-                                                          num_trials=num_trials, perturb_amount=perturb_amount,
-                                                          integer=integer)
+                    saliencies[p] = self.compute_importance(state, node, sink_node, latent_dict, target_value,
+                                                            bool_nodes=bool_nodes, fixed_nodes=fixed_nodes,
+                                                            perturb_amount=perturb_amount,
+                                                            integer=integer)
 
         return saliencies
 
@@ -314,8 +337,8 @@ class SCM(nx.DiGraph):
 
 def test(sim: Simulator, feature_nodes, action_nodes, sink_node, skeleton_path, model_path, output_dir, paths=False,
          bool_nodes=(), use_q=False, action_size=1, retrain=False, linear_regression=True, normalize=True,
-         num_trajectories=100, num_epochs=200, batch_size=64, saliency_trials=100, perturb_amount=0.01, integer=False,
-         seed=42, verbose=False):
+         num_trajectories=100, num_epochs=200, batch_size=64, perturb_amount=0.01, integer=False,
+         seed=None, verbose=False, test_data=None, saliency_map=False):
     """
     Run the SCM saliency algorithm.
     :param sim: The simulator
@@ -378,8 +401,9 @@ def test(sim: Simulator, feature_nodes, action_nodes, sink_node, skeleton_path, 
         # features should be a sorted strings of features name correspond to the node names in the SCM
         # and the data column order should also correspond to FEATURES
 
-        seed = np.random.randint(65536)
-        sim.seed(np.random.randint(65536))
+        # seed = np.random.randint(65536)
+        # np.random.randint(seed)
+        # sim.seed(np.random.randint(65536))
         train_data = sim.sample_batch(num_trajectories)
         print(f'training data size: {train_data.shape}')
 
@@ -417,8 +441,9 @@ def test(sim: Simulator, feature_nodes, action_nodes, sink_node, skeleton_path, 
                 if epoch % 10 == 0:
                     print(f'epoch {epoch:03d}: loss = {loss:.4f}')
 
-        print(f'saving model to {model_path}')
-        scm.save_models(model_path)
+        if model_path is not None:
+            print(f'saving model to {model_path}')
+            scm.save_models(model_path)
 
         # plot 2D or 3D nodes to check
         if verbose:
@@ -484,24 +509,26 @@ def test(sim: Simulator, feature_nodes, action_nodes, sink_node, skeleton_path, 
                       f"\tvar={scm.nodes[node]['model'].var}")
 
     # testing
-    np.random.seed(seed)
-    sim.seed(seed)
+    if test_data is None:
+        np.random.seed(seed)
+        sim.seed(seed)
+        test_data = sim.sample_batch(1, include_first_step=True)
+
     scm.eval()
 
-    test_data = sim.sample_batch(1, include_first_step=True)
-
     # compute saliency
+    print('computing saliency...')
     saliency_dict = defaultdict(lambda: [])
     for t in tqdm(range(len(test_data))):
         if paths:
             # TODO: start nodes
-            saliencies = scm.compute_path_saliency(test_data[t], sink_node, start_nodes=['a_prev'],
-                                                   num_trials=saliency_trials, perturb_amount=perturb_amount,
-                                                   integer=integer, bool_nodes=bool_nodes)
+            saliencies = scm.compute_path_importance(test_data[t], sink_node, start_nodes=['a_prev'],
+                                                     perturb_amount=perturb_amount,
+                                                     integer=integer, bool_nodes=bool_nodes)
         else:
-            saliencies = scm.compute_all_saliency(test_data[t], sink_node,
-                                                  num_trials=saliency_trials, perturb_amount=perturb_amount,
-                                                  integer=integer, bool_nodes=bool_nodes)
+            saliencies = scm.compute_all_importance(test_data[t], sink_node,
+                                                    perturb_amount=perturb_amount,
+                                                    integer=integer, bool_nodes=bool_nodes, saliency_map=saliency_map)
         for feature, value in saliencies.items():
             saliency_dict[feature].append(value)
 
@@ -609,8 +636,8 @@ def test_blackjack_extended():
     state = (test_data[idx])
 
     bool_nodes = [f'a_{i}' for i in range(5)] + [f'ace_{i}' for i in range(5)]
-    saliency = scm.compute_all_saliency(state, sink_node, bool_nodes=bool_nodes,
-                                        num_trials=2, perturb_amount=1, integer=True)
+    saliency = scm.compute_all_importance(state, sink_node, bool_nodes=bool_nodes,
+                                          perturb_amount=1, integer=True)
 
     plt.figure(dpi=300)
     labels = ['Hand_t', 'Dealer_t', 'Ace_t', 'Action_t']
@@ -629,7 +656,7 @@ def test_blackjack_extended():
 
     # saliencies = {'hand_1': [], 'dealer_1': [], 'ace_1': [], 'a_1': []}
     # for i in range(1, num_step):
-    #     ss = scm.compute_all_saliency(state, sink_node=f'a_{i}', num_trials=2, perturb_amount=1, integer=True)
+    #     ss = scm.compute_all_saliency(state, sink_node=f'a_{i}', perturb_amount=1, integer=True)
     #     for f in saliencies.keys():
     #         if f in ss.keys():
     #             saliencies[f].append(ss[f])
@@ -644,9 +671,9 @@ def test_blackjack_extended():
 
 
 def test_uncertainty(num_tries, idx, sim: Simulator, feature_nodes, action_nodes, sink_node, skeleton_path, model_path,
-                     output_dir, paths=False, bool_nodes=(), use_q=False, action_size=1, retrain=True,
+                     output_dir, paths=False, bool_nodes=(), use_q=False, action_size=2, retrain=True,
                      linear_regression=True, normalize=True, num_trajectories=100, num_epochs=200, batch_size=64,
-                     saliency_trials=100, perturb_amount=0.01, integer=False, seed=42):
+                     perturb_amount=0.01, integer=False, seed=42):
     p, ext = os.path.splitext(model_path)
 
     ranges = range(num_tries) if idx is None else [idx]
@@ -655,7 +682,7 @@ def test_uncertainty(num_tries, idx, sim: Simulator, feature_nodes, action_nodes
         curr_model_path = p + f'_{t}' + ext
         test(sim, feature_nodes, action_nodes, sink_node, skeleton_path, curr_model_path, curr_output_dir, paths,
              bool_nodes, use_q, action_size, retrain, linear_regression, normalize, num_trajectories, num_epochs,
-             batch_size, saliency_trials, perturb_amount, integer, seed, False)
+             batch_size, perturb_amount, integer, seed, False)
 
 
 if __name__ == '__main__':
@@ -663,16 +690,25 @@ if __name__ == '__main__':
     # test(sim=BangBangControl(), feature_nodes=('x', 'v', 's', 'a'), action_nodes=('a_prev', 'a'), sink_node='a',
     #      skeleton_path='./skeletons/bang_bang_scm.json', model_path='./trained_models/bang_bang_scm.pth',
     #      output_dir='./output/bang_bang_1/', retrain=False, linear_regression=True,
-    #      saliency_trials=2, perturb_amount=0.1, num_epochs=50, verbose=True)
+    #      perturb_amount=0.10, num_epochs=50, verbose=True)
 
     # run lunar lander
-    # test(sim=LunarLander(),
+    test(sim=LunarLander(), seed=42,
+         feature_nodes=('x_pos', 'y_pos', 'x_vel', 'y_vel', 'angle', 'angle_vel', 'left_leg', 'right_leg'),
+         action_size=4, action_nodes=('a_prev', 'a'), sink_node='a',
+         bool_nodes=('left_leg', 'right_leg', 'left_leg_prev', 'right_leg_prev'),
+         skeleton_path='./skeletons/lunar_lander_scm.json', model_path='./trained_models/lunar_lander_scm_nonlinear.pth',
+         output_dir='output/lunar_lander_new/', retrain=True, linear_regression=True, normalize=True,
+         num_trajectories=100, perturb_amount=0.1, verbose=False)
+
+    # test(sim=LunarLander(), seed=42,
     #      feature_nodes=('x_pos', 'y_pos', 'x_vel', 'y_vel', 'angle', 'angle_vel', 'left_leg', 'right_leg'),
     #      action_size=4, action_nodes=('a_prev', 'a'), sink_node='a',
     #      bool_nodes=('left_leg', 'right_leg', 'left_leg_prev', 'right_leg_prev'),
-    #      skeleton_path='./skeletons/lunar_lander_scm.json', model_path='./trained_models/lunar_lander_scm.pth',
-    #      output_dir='./output/lunar_lander_1/', retrain=False, linear_regression=True,
-    #      num_trajectories=100, saliency_trials=2, perturb_amount=0.01, verbose=True)
+    #      skeleton_path='./skeletons/lunar_lander_scm.json',
+    #      model_path='./trained_models/lunar_lander_scm_nonlinear.pth', saliency_map=True,
+    #      output_dir='output/lunar_lander_saliency_map/', retrain=False, linear_regression=True, normalize=True,
+    #      num_trajectories=100, perturb_amount=0.1, verbose=False)
 
     # run blackjack action-based
     # test(sim=Blackjack(),
@@ -680,7 +716,7 @@ if __name__ == '__main__':
     #      action_size=1, action_nodes=('a_prev', 'a'), sink_node='a', bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
     #      skeleton_path='./skeletons/blackjack_scm.json', model_path='./trained_models/blackjack_scm.pth',
     #      output_dir='./output/blackjack_a/', retrain=False, linear_regression=False, normalize=False,
-    #      num_trajectories=50000, num_epochs=50, saliency_trials=2, perturb_amount=1, integer=True, verbose=False)
+    #      num_trajectories=50000, num_epochs=50, perturb_amount=1, integer=True, verbose=False)
 
     # run blackjack q-based
     # test(sim=Blackjack(),
@@ -688,10 +724,10 @@ if __name__ == '__main__':
     #      action_size=1, action_nodes=('a_prev', 'a'), sink_node='a', bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
     #      skeleton_path='./skeletons/blackjack_scm.json', model_path='./trained_models/blackjack_scm.pth',
     #      output_dir='./output/blackjack/', retrain=False, linear_regression=False, normalize=False,
-    #      num_trajectories=50000, num_epochs=50, saliency_trials=2, perturb_amount=1, integer=True, verbose=False)
+    #      num_trajectories=50000, num_epochs=50, perturb_amount=1, integer=True, verbose=False)
 
     # run multi-step blackjack
-    # TODO: this is jank
+    # TODO: jank
     # test_blackjack_extended()
 
     # run path-specific blackjack
@@ -700,21 +736,21 @@ if __name__ == '__main__':
     #      action_size=1, action_nodes=('a_prev', 'a'), sink_node='a', bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
     #      skeleton_path='./skeletons/blackjack_scm.json', model_path='./trained_models/blackjack_scm.pth',
     #      output_dir='./output/blackjack_path/', retrain=False, linear_regression=False, normalize=False,
-    #      num_trajectories=50000, num_epochs=50, saliency_trials=2, perturb_amount=1, integer=True, verbose=False)
+    #      num_trajectories=50000, num_epochs=50, perturb_amount=1, integer=True, verbose=False)
 
     # run blackjack uncertainty
-    if len(sys.argv) > 1:
-        idx = int(sys.argv[-1])
-    else:
-        idx = None
-    test_uncertainty(10, idx, sim=Blackjack(),
-                     feature_nodes=('hand', 'dealer', 'ace'), use_q=True,
-                     action_size=1, retrain=False, action_nodes=('a_prev', 'a'), sink_node='a',
-                     bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
-                     skeleton_path='./skeletons/blackjack_scm.json', model_path='./trained_models/blackjack_scm.pth',
-                     output_dir='./output/blackjack_uncertainty/', linear_regression=False, normalize=False,
-                     num_trajectories=10000, num_epochs=50, saliency_trials=2, perturb_amount=1,
-                     integer=True)
+    # if len(sys.argv) > 1:
+    #     idx = int(sys.argv[-1])
+    # else:
+    #     idx = None
+    # test_uncertainty(10, idx, sim=Blackjack(),
+    #                  feature_nodes=('hand', 'dealer', 'ace'), use_q=True,
+    #                  action_size=1, retrain=False, action_nodes=('a_prev', 'a'), sink_node='a',
+    #                  bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
+    #                  skeleton_path='./skeletons/blackjack_scm.json', model_path='./trained_models/blackjack_scm.pth',
+    #                  output_dir='./output/blackjack_uncertainty/', linear_regression=False, normalize=False,
+    #                  num_trajectories=10000, num_epochs=50, perturb_amount=1,
+    #                  integer=True)
 
     # run bang-bang uncertainty
     # if len(sys.argv) > 1:
@@ -726,4 +762,156 @@ if __name__ == '__main__':
     #                  sink_node='a', skeleton_path='./skeletons/bang_bang_scm.json',
     #                  model_path='./trained_models/bang_bang_scm.pth', num_trajectories=1,
     #                  output_dir='./output/bang_bang_uncertainty/', retrain=False, linear_regression=True,
-    #                  saliency_trials=2, perturb_amount=0.1, num_epochs=50)
+    #                  perturb_amount=0.10, num_epochs=50)
+
+    # run blackjack sensitivity
+    # for i in range(500):
+    #     output_dir = f'./output/blackjack_sensitivity/full/{i}'
+    #     test(sim=Blackjack(),
+    #          feature_nodes=('hand', 'dealer', 'ace'), use_q=True,
+    #          action_size=1, action_nodes=('a_prev', 'a'), sink_node='a',
+    #          bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
+    #          skeleton_path='./skeletons/blackjack_scm.json', model_path='./trained_models/blackjack_scm.pth',
+    #          output_dir=output_dir, retrain=False, linear_regression=False, normalize=False,
+    #          num_trajectories=50000, num_epochs=50, perturb_amount=1, integer=True, verbose=False)
+    #
+    # for j in range(20):
+    #     model_path = f'./trained_models/blackjack_scm_{j}.pth'
+    #     for i in range(500):
+    #         output_dir = f'./output/blackjack_sensitivity/{j}/{i}'
+    #         test(sim=Blackjack(),
+    #              feature_nodes=('hand', 'dealer', 'ace'), use_q=True,
+    #              action_size=1, action_nodes=('a_prev', 'a'), sink_node='a',
+    #              bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
+    #              skeleton_path='./skeletons/blackjack_scm.json', model_path=model_path,
+    #              output_dir=output_dir, retrain=False, linear_regression=False, normalize=False,
+    #              num_trajectories=50000, num_epochs=50, perturb_amount=1, integer=True,
+    #              verbose=False)
+
+    # run toy crop model action-based
+    # test(sim=ToyCrop(), seed=42,
+    #      feature_nodes=('rain', 'sunlight', 'water'),
+    #      action_size=2, action_nodes=('a_prev', 'a'), sink_node='a', bool_nodes=(),
+    #      skeleton_path='./skeletons/crop_scm.json', model_path='./trained_models/crop_scm.pth',
+    #      output_dir='./output/crop_q/', retrain=False, linear_regression=False, normalize=True, use_q=True,
+    #      num_trajectories=500, num_epochs=50, perturb_amount=0.10, integer=True, verbose=False)
+
+    # run toy crop model 2 action-based
+    # test(sim=ToyCrop2(), seed=41,
+    #      feature_nodes=('precip', 'humidity', 'weight', 'radiation'),
+    #      action_size=1, action_nodes=('a_prev', 'a'), sink_node='a', bool_nodes=(),
+    #      skeleton_path='./skeletons/crop2_scm.json', model_path='./trained_models/crop2_scm.pth',
+    #      output_dir='./output/crop2_q/', retrain=True, linear_regression=False, normalize=False, use_q=False,
+    #      num_trajectories=1000, num_epochs=50, perturb_amount=0.10, integer=False, verbose=False)
+    #
+    # test(sim=ToyCrop2(), seed=41,
+    #      feature_nodes=('precip', 'humidity', 'weight', 'radiation'),
+    #      action_size=1, action_nodes=('a_prev', 'a'), sink_node='a', bool_nodes=(),
+    #      skeleton_path='./skeletons/crop2_scm.json', model_path='./trained_models/crop2_scm.pth',
+    #      output_dir='./output/crop2_saliency_map/', retrain=False, linear_regression=False, normalize=False, use_q=False,
+    #      num_trajectories=1000, num_epochs=50, perturb_amount=0.10, integer=False, verbose=False, saliency_map=True)
+
+    # run bang-bang, ablation analysis on perturb amount
+    # for i, perturb_amount in enumerate(np.arange(0.01, 0.2, 0.01)):
+    #     test(sim=BangBangControl(), feature_nodes=('x', 'v', 's', 'a'), action_nodes=('a_prev', 'a'), sink_node='a',
+    #          skeleton_path='./skeletons/bang_bang_scm.json', model_path='./trained_models/bang_bang_scm.pth',
+    #          output_dir=f'./output/bang_bang_ablation_perturb/{i}/', retrain=False, linear_regression=True,
+    #          perturb_amount=perturb_amount, num_epochs=50, verbose=True, seed=42)
+
+    # run blackjack, ablation analysis on perturb amount
+    # for i, perturb_amount in enumerate(np.arange(1, 6)):
+    #     test(sim=Blackjack(),
+    #          feature_nodes=('hand', 'dealer', 'ace'), use_q=True,
+    #          action_size=1, action_nodes=('a_prev', 'a'), sink_node='a',
+    #          bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
+    #          skeleton_path='./skeletons/blackjack_scm.json', model_path='./trained_models/blackjack_scm.pth',
+    #          output_dir=f'./output/blackjack_ablation_perturb/{i}', retrain=False, linear_regression=False,
+    #          normalize=False, num_trajectories=50000, num_epochs=50, perturb_amount=perturb_amount,
+    #          integer=True, verbose=False)
+
+    # bang-bang test data
+    # sim = BangBangControl()
+    # sim.seed(42)
+    # bang_bang_test_data = sim.sample_batch(1, include_first_step=True)
+
+    # bang-bang, sensitivity on perturb amount
+    # for perturb_amount in np.arange(0.01, 0.2, 0.01):
+    #     for t in range(50):
+    #         print(f'./output/sensitivity/bang_bang/perturb/{perturb_amount}/{t}/')
+    #         test(sim=BangBangControl(), feature_nodes=('x', 'v', 's', 'a'), action_nodes=('a_prev', 'a'), sink_node='a',
+    #              skeleton_path='./skeletons/bang_bang_scm.json', model_path=None,
+    #              output_dir=f'./output/sensitivity/bang_bang/perturb/{perturb_amount:.2f}/{t}/', retrain=True,
+    #              linear_regression=True, test_data=bang_bang_test_data,
+    #              perturb_amount=perturb_amount, num_epochs=50, verbose=False, seed=42)
+    #
+    # # bang-bang, sensitivity on num_trajectory
+    # for num_traj in [1, 10, 100]:
+    #     for t in range(50):
+    #         print(f'./output/sensitivity/bang_bang/num_traj/{num_traj}/{t}/')
+    #         test(sim=BangBangControl(), feature_nodes=('x', 'v', 's', 'a'), action_nodes=('a_prev', 'a'),
+    #              sink_node='a',
+    #              skeleton_path='./skeletons/bang_bang_scm.json', model_path=None,
+    #              output_dir=f'./output/sensitivity/bang_bang/num_traj/{num_traj}/{t}/', retrain=True,
+    #              linear_regression=True, test_data=bang_bang_test_data, num_trajectories=num_traj,
+    #              perturb_amount=0.1, num_epochs=50, verbose=False, seed=42)
+
+    # blackjack test data
+    # blackjack_test_data = np.load('output/blackjack/trajectory.npy')
+
+    # blackjack, sensitivity on perturb amount
+    # for perturb_amount in np.arange(1, 6):
+    #     for t in range(50):
+    #         test(sim=Blackjack(),
+    #              feature_nodes=('hand', 'dealer', 'ace'), use_q=True,
+    #              action_size=1, action_nodes=('a_prev', 'a'), sink_node='a',
+    #              bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
+    #              skeleton_path='./skeletons/blackjack_scm.json', model_path='./trained_models/blackjack_scm.pth',
+    #              output_dir=f'./output/sensitivity/blackjack/perturb/{perturb_amount}/{t}', retrain=False,
+    #              linear_regression=False,
+    #              normalize=False, num_trajectories=50000, num_epochs=50,
+    #              perturb_amount=perturb_amount, test_data=blackjack_test_data,
+    #              integer=True, verbose=False)
+
+    # blackjack, sensitivity on num_epochs
+    # for num_traj in [5, 50, 500]:
+    #     for t in range(50):
+    # num_traj, t = int(sys.argv[1]), (sys.argv[2])
+    # test(sim=Blackjack(),
+    #      feature_nodes=('hand', 'dealer', 'ace'), use_q=True,
+    #      action_size=1, action_nodes=('a_prev', 'a'), sink_node='a',
+    #      bool_nodes=('a', 'a_prev', 'ace', 'ace_prev'),
+    #      skeleton_path='./skeletons/blackjack_scm.json', model_path=None,
+    #      output_dir=f'./output/sensitivity/blackjack/num_traj/{num_traj}/{t}', retrain=True,
+    #      linear_regression=False,
+    #      normalize=False, num_trajectories=num_traj, num_epochs=50,
+    #      perturb_amount=1, test_data=blackjack_test_data,
+    #      integer=True, verbose=False)
+
+    # # lunar lander test_data
+    # lunar_lander_test_data = np.load('output/lunar_lander/trajectory.npy')
+    #
+    # # lunar lander, sensitivity on perturb amount
+    # for perturb_amount in np.arange(0.054, 0.2, 0.02):
+    #     for t in range(1):
+    #         print(f'./output/sensitivity/lunar_lander/perturb/{perturb_amount}/{t}/')
+    #         test(sim=LunarLander(),
+    #              feature_nodes=('x_pos', 'y_pos', 'x_vel', 'y_vel', 'angle', 'angle_vel', 'left_leg', 'right_leg'),
+    #              action_size=4, action_nodes=('a_prev', 'a'), sink_node='a',
+    #              bool_nodes=('left_leg', 'right_leg', 'left_leg_prev', 'right_leg_prev'),
+    #              skeleton_path='./skeletons/lunar_lander_scm.json', model_path='./trained_models/lunar_lander_scm.pth',
+    #              output_dir=f'./output/sensitivity/lunar_lander/perturb/{perturb_amount:.2f}/{t}/', retrain=False,
+    #              linear_regression=True, num_trajectories=100, perturb_amount=perturb_amount,
+    #              verbose=False, test_data=lunar_lander_test_data)
+    #
+    # # lunar lander, sensitivity on num_trajectory
+    # for num_traj in [1, 10, 100]:
+    #     for t in range(10):
+    #         print(f'./output/sensitivity/lunar_lander/num_traj/{num_traj}/{t}/')
+    #         test(sim=LunarLander(),
+    #              feature_nodes=('x_pos', 'y_pos', 'x_vel', 'y_vel', 'angle', 'angle_vel', 'left_leg', 'right_leg'),
+    #              action_size=4, action_nodes=('a_prev', 'a'), sink_node='a',
+    #              bool_nodes=('left_leg', 'right_leg', 'left_leg_prev', 'right_leg_prev'),
+    #              skeleton_path='./skeletons/lunar_lander_scm.json', model_path='./trained_models/lunar_lander_scm.pth',
+    #              output_dir=f'./output/sensitivity/lunar_lander/num_traj/{num_traj:.2f}/{t}/', retrain=True,
+    #              linear_regression=True, num_trajectories=num_traj, perturb_amount=0.01,
+    #              verbose=False, test_data=lunar_lander_test_data)

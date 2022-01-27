@@ -1,0 +1,101 @@
+{
+  "directed": true,
+  "multigraph": false,
+  "graph": {},
+  "nodes": [
+    {
+      "id": "precip_prev"
+    },
+    {
+      "id": "humidity_prev"
+    },
+    {
+      "id": "weight_prev"
+    },
+    {
+      "id": "radiation_prev"
+    },
+    {
+      "id": "a_prev"
+    },
+    {
+      "id": "precip"
+    },
+    {
+      "id": "humidity"
+    },
+    {
+      "id": "weight"
+    },
+    {
+      "id": "radiation"
+    },
+    {
+      "id": "a"
+    }
+  ],
+  "links": [
+    {
+      "source": "precip_prev",
+      "target": "humidity_prev"
+    },
+    {
+      "source": "humidity_prev",
+      "target": "weight_prev"
+    },
+    {
+      "source": "radiation_prev",
+      "target": "weight_prev"
+    },
+    {
+      "source": "humidity_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "weight_prev",
+      "target": "a_prev"
+    },
+    {
+      "source": "radiation_prev",
+      "target": "a_prev"
+    },
+
+    {
+      "source": "precip",
+      "target": "humidity"
+    },
+    {
+      "source": "humidity",
+      "target": "weight"
+    },
+    {
+      "source": "radiation",
+      "target": "weight"
+    },
+    {
+      "source": "humidity",
+      "target": "a"
+    },
+    {
+      "source": "weight",
+      "target": "a"
+    },
+    {
+      "source": "radiation",
+      "target": "a"
+    },
+
+    {
+      "source": "weight_prev",
+      "target": "weight"
+    },
+    {
+      "source": "humidity_prev",
+      "target": "humidity"
+    },
+    {
+      "source": "a_prev",
+      "target": "weight"
+    }
+  ]
+}
